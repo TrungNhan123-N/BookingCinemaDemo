@@ -1,41 +1,43 @@
 version: '3.8'
 
 services:
-  backend-cinema-booking:
+  fastapi-backend:
     build:
-      context: ./cinema-booking-backend
+      context: .
       dockerfile: Dockerfile
-    image: ${DOCKER_USERNAME}/cinema-booking-backend:latest
-    container_name: cinema-booking-backend
+    image: ${DOCKER_USERNAME}/fastapi-backend:latest
+    container_name: fastapi-backend
     environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=postgresql://postgres:postgres@cinema_postgres:5432/cinema-booking
-    depends_on:
-      - postgres
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=${DB_CONNECTION_STRING}
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - app-network
     restart: always
 
-  postgres:
-    image: postgres:15
-    container_name: cinema_postgres
-    environment:
-      POSTGRES_DB: cinema-booking
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./cinema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./cine-data.sql:/docker-entrypoint-initdb.d/02-data.sql
-    networks:
-      - app-network
-    restart: unless-stopped
+volumes:
+  postgres-data:
 
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  postgres_data:
