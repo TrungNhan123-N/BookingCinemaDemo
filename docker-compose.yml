@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend-cinema-booking:
+    build:
+      context: ./cinema-booking-backend
+      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/cinema-booking-backend:latest
+    container_name: cinema-booking-backend
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://postgres:postgres@cinema_postgres:5432/cinema-booking
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    restart: always
+
+  postgres:
+    image: postgres:15
+    container_name: cinema_postgres
+    environment:
+      POSTGRES_DB: cinema-booking
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./cinema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./cine-data.sql:/docker-entrypoint-initdb.d/02-data.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
